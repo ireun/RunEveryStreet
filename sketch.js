@@ -7,8 +7,8 @@ var openlayersmap = new ol.Map({
 		})
 	],
 	view: new ol.View({
-		center: ol.proj.fromLonLat([0.3192, 51.6297]),
-		zoom: 16
+		center: ol.proj.fromLonLat([5.95,47.26]),
+		zoom: 12
 	})
 });
 
@@ -69,7 +69,7 @@ function setup() {
 	colorMode(HSB);
 	mode = choosemapmode;
 	iterationsperframe = 1;
-	margin = 0.07; // don't pull data in the extreme edges of the map
+	margin = 0.1; // don't pull data in the extreme edges of the map
 	showMessage("Zoom to selected area, then click here");
 
 }
@@ -137,7 +137,7 @@ function draw() { //main loop called by the P5.js framework every frame
 }
 
 function getOverpassData() { //load nodes and edge map data in XML format from OpenStreetMap via the Overpass API
-	showMessage("Loading map data...");
+	showMessage("Loading map data…");
 	canvas.position(0, 34); // start canvas just below logo image
 	bestroute = null;
 	totaluniqueroads=0;
@@ -151,7 +151,7 @@ function getOverpassData() { //load nodes and edge map data in XML format from O
 	datamaxlat = extent[3] - (extent[3] - extent[1]) * margin;
 	datamaxlon = extent[2] - (extent[2] - extent[0]) * margin;
 	let OverpassURL = "https://overpass-api.de/api/interpreter?data=";
-	let overpassquery = "(way({{bbox}}) ['highway']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'elevator']['highway' !~ 'bus_guideway']['highway' !~ 'trunk']['highway' !~ 'platform']['footway' !~ 'crossing']['footway' !~ 'sidewalk']['foot' !~ 'no']['service' !~ 'drive-through']['service' !~ 'parking_aisle']['access' !~ 'private']['access' !~ 'no'];node(w)({{bbox}}););out;";
+	let overpassquery = "(way({{bbox}})['highway']['highway' !~ 'trunk']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'service']['highway' !~ 'elevator']['footway' !~ 'crossing']['footway' !~ 'sidewalk']['foot' !~ 'no']['access' !~ 'private']['access' !~ 'no'];node(w)({{bbox}}););out;";
 
 	overpassquery = overpassquery.replace("{{bbox}}", dataminlat + "," + dataminlon + "," + datamaxlat + "," + datamaxlon);
 	overpassquery = overpassquery.replace("{{bbox}}", dataminlat + "," + dataminlon + "," + datamaxlat + "," + datamaxlon);
@@ -307,7 +307,7 @@ function mousePressed() { // clicked on map to select a node
 		showEdges(); // find closest edge
 		if (mouseY < btnBRy && mouseY > btnTLy && mouseX > btnTLx && mouseX < btnBRx) { // clicked on button
 			mode = solveRESmode;
-			showMessage('Calculating... Click to stop');
+			showMessage('Calculating… Click to stop when satisfied');
 			showNodes(); // recalculate closest node
 			solveRES();
 			return;
