@@ -151,8 +151,7 @@ function getOverpassData() { //load nodes and edge map data in XML format from O
 	datamaxlat = extent[3] - (extent[3] - extent[1]) * margin;
 	datamaxlon = extent[2] - (extent[2] - extent[0]) * margin;
 	let OverpassURL = "https://overpass-api.de/api/interpreter?data=";
-	//let overpassquery = "(way({{bbox}})['name']['highway']['highway' !~ 'path']['highway' !~ 'steps']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'bridleway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'elevator']['highway' !~ 'bus_guideway']['highway' !~ 'footway']['highway' !~ 'cycleway']['highway' !~ 'trunk']['highway' !~ 'platform']['foot' !~ 'no']['service' !~ 'drive-through']['service' !~ 'parking_aisle']['access' !~ 'private']['access' !~ 'no'];node(w)({{bbox}}););out;";
-	let overpassquery = "(way({{bbox}}) ['highway']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'elevator']['highway' !~ 'bus_guideway']['highway' !~ 'trunk']['highway' !~ 'platform']['highway' !~ 'footway']['foot' !~ 'no']['service' !~ 'drive-through']['service' !~ 'parking_aisle']['access' !~ 'private']['access' !~ 'no'];node(w)({{bbox}}););out;";
+	let overpassquery = "(way({{bbox}}) ['highway']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'elevator']['highway' !~ 'bus_guideway']['highway' !~ 'trunk']['highway' !~ 'platform']['footway' !~ 'crossing']['footway' !~ 'sidewalk']['foot' !~ 'no']['service' !~ 'drive-through']['service' !~ 'parking_aisle']['access' !~ 'private']['access' !~ 'no'];node(w)({{bbox}}););out;";
 
 	overpassquery = overpassquery.replace("{{bbox}}", dataminlat + "," + dataminlon + "," + datamaxlat + "," + datamaxlon);
 	overpassquery = overpassquery.replace("{{bbox}}", dataminlat + "," + dataminlon + "," + datamaxlat + "," + datamaxlon);
@@ -297,7 +296,7 @@ function mousePressed() { // clicked on map to select a node
 		getOverpassData();
 		return;
 	}
-	if (mode == selectnodemode && mouseY < mapHeight) { // Select node mode, and clicked on map 
+	if (mode == selectnodemode && mouseY < mapHeight) { // Select node mode, and clicked on map
 		showNodes(); //find node closest to mouse
 		mode = trimmode;
 		showMessage('Click on roads to trim, then click here');
