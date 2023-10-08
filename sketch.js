@@ -152,7 +152,24 @@ function getOverpassData() { //load nodes and edge map data in XML format from O
 	datamaxlon = extent[2] - (extent[2] - extent[0]) * margin;
 	let OverpassURL = "https://overpass-api.de/api/interpreter?data=";
 	//let overpassquery = "(way({{bbox}})['name']['highway']['highway' !~ 'path']['highway' !~ 'steps']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'bridleway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'elevator']['highway' !~ 'bus_guideway']['highway' !~ 'footway']['highway' !~ 'cycleway']['highway' !~ 'trunk']['highway' !~ 'platform']['foot' !~ 'no']['service' !~ 'drive-through']['service' !~ 'parking_aisle']['access' !~ 'private']['access' !~ 'no'];node(w)({{bbox}}););out;";
-	let overpassquery = "(way({{bbox}})['highway']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'elevator']['highway' !~ 'bus_guideway']['highway' !~ 'trunk']['highway' !~ 'platform']['foot' !~ 'no']['service' !~ 'drive-through']['service' !~ 'parking_aisle']['access' !~ 'private']['access' !~ 'no'];node(w)({{bbox}}););out;";
+	let overpassquery = "(way({{bbox}})
+		['highway']
+		['highway' !~ 'motorway']
+		['highway' !~ 'motorway_link']
+		['highway' !~ 'raceway']
+		['highway' !~ 'proposed']
+		['highway' !~ 'construction']
+		['highway' !~ 'elevator']
+		['highway' !~ 'bus_guideway']
+		['highway' !~ 'trunk']
+		['highway' !~ 'platform']
+		['highway' !~ 'footway'] //removes footway crossings and sidewalks, may lead to false-negatives
+		['foot' !~ 'no']
+		['service' !~ 'drive-through']
+		['service' !~ 'parking_aisle']
+		['access' !~ 'private']
+		['access' !~ 'no'];
+		node(w)({{bbox}}););out;";
 
 	overpassquery = overpassquery.replace("{{bbox}}", dataminlat + "," + dataminlon + "," + datamaxlat + "," + datamaxlon);
 	overpassquery = overpassquery.replace("{{bbox}}", dataminlat + "," + dataminlon + "," + datamaxlat + "," + datamaxlon);
@@ -247,7 +264,7 @@ function resetEdges() {
 	}
 }
 
-function removeOrphans() { // remove unreachable nodes and edges 
+function removeOrphans() { // remove unreachable nodes and edges
 	resetEdges();
 	currentnode = startnode;
 	floodfill(currentnode, 1); // recursively walk every unwalked route until all connected nodes have been reached at least once, then remove unwalked ones.
@@ -333,8 +350,6 @@ function mousePressed() { // clicked on map to select a node
 		bestroute.exportGPX();
 		return;
 	}
-
-	
 }
 
 function positionMap(minlon_, minlat_, maxlon_, maxlat_) {
