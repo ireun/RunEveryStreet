@@ -3,10 +3,10 @@
 This repo is a tweaked fork from [Solipsia's RunEveryStreet](https://github.com/solipsia/RunEveryStreet) in order to ease its use for street-surveying, especially the case of photomapping where I would get issues with sidewalks and such while I really wanted the streets only.
 
 <p align="center">
-  <img width="460" src="/docs/Square.png">
+  <img width="460" src="./docs/Square.png">
 </p>
 <p align="center">
-  <img width="460" src="/docs/DownloadRoute.png">
+  <img width="460" src="./docs/DownloadRoute.png">
 </p>
 
 This is an attempt at solving the [Chinese Postman Problem](https://en.wikipedia.org/wiki/Route_inspection_problem) by calculating the shortest route that covers all possible roads at least once within a selected town. This is a common problem faced by rubbish collectors cleaning every street while using the least amount of fuel, or a postman delivering letters to every house on foot. In my case, I wanted to run down every street in my town in the laziest manner possible.
