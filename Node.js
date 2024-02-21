@@ -1,4 +1,18 @@
 class Node {
+	nodeId;
+	lat;
+	lon;
+	pos;
+	x;
+	y;
+	edges = [];
+
+	/**
+	 * 
+	 * @param {number} nodeId_ Node ID
+	 * @param {number} lat_ Latitude
+	 * @param {number} lon_ Longitude
+	 */
 	constructor(nodeId_, lat_, lon_) {
 		this.nodeId = nodeId_;
 		this.lat = lat_;

@@ -1,4 +1,17 @@
-class Edge { //section of road that connects nodes
+class Edge {
+	wayid;
+	from;
+	to;
+	travels;
+	distance;
+
+	/**
+	 * section of road that connects nodes
+	 * 
+	 * @param {Node} from_
+	 * @param {Node} to_
+	 * @param {Number} wayid_ OSM ID
+	 */
 	constructor(from_, to_, wayid_) {
 		this.wayid = wayid_;
 		this.from = from_;

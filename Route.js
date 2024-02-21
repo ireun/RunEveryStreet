@@ -1,4 +1,18 @@
 class Route {
+    waypoints;
+    minlat;
+    maxlat;
+    minlon;
+    maxlon;
+    distance; //Total route distance
+    doublingsup;
+
+    /**
+     * Route passing through several nodes
+     * 
+     * @param {Node} startnode
+     * @param {Route} originalroute
+     */
     constructor(startnode, originalroute) {
         if (originalroute == null) { // create a new route with just a node
             this.waypoints = [];
