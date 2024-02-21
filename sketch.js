@@ -1,20 +1,39 @@
-var openlayersmap = new ol.Map({
-	target: 'map',
+const vectorSource = new ol.source.Vector({
+	wrapX: false,
+});
+const vector = new ol.layer.Vector({
+	source: vectorSource,
+})
+var openlayersmap = new ol.Map({ //OpenLayers https://openlayers.org
+	target: 'OSMmap',
 	layers: [
 		new ol.layer.Tile({
 			source: new ol.source.OSM(),
 			opacity: 0.5
-		})
+		}),
+		vector,
 	],
 	view: new ol.View({
 		center: ol.proj.fromLonLat([5.95,47.26]),
 		zoom: 12
-	})
+	}),
+	interactions: ol.interaction.defaults.defaults().extend([
+		new ol.interaction.DragRotateAndZoom({
+			condition: function(mapBrowserEvent) {
+				return mapBrowserEvent.originalEvent.isPrimary && mapBrowserEvent.originalEvent.buttons == 4
+			}
+		})
+	]),
+	controls: ol.control.defaults.defaults().extend([
+		new ol.control.ZoomSlider()
+	])
 });
 
 var canvas;
 var mapHeight;
 var windowX, windowY;
+var headerHeight = 34;
+var polygonPadding = 40;
 let txtoverpassQuery;
 var OSMxml;
 var numnodes, numways;
@@ -25,7 +44,10 @@ var minlat = Infinity,
 	maxlon = -Infinity;
 var nodes = [],
 	edges = [];
-var mapminlat, mapminlon, mapmaxlat, mapmaxlon;
+var mapminlat = Infinity,
+	mapmaxlat = -Infinity,
+	mapminlon = Infinity,
+	mapmaxlon = -Infinity;
 var totaledgedistance = 0;
 var closestnodetomouse = -1;
 var closestedgetomouse = -1;
@@ -54,8 +76,15 @@ var efficiencyhistory = [],
 var totalefficiencygains = 0;
 var isTouchScreenDevice = false;
 var totaluniqueroads;
+var olDraw;
+var olDrawCoordinates;
+var polygon;
+var polygonminX = Infinity,
+	polygonmaxX = -Infinity,
+	polygonminY = Infinity,
+	polygonmaxY = -Infinity;
 
-function setup() {
+function setup() { //P5.js
 	if (navigator.geolocation) { //if browser shares user GPS location, update map to center on it.
 		navigator.geolocation.getCurrentPosition(function (position) {
 			openlayersmap.getView().setCenter(ol.proj.fromLonLat([position.coords.longitude, position.coords.latitude]));
@@ -65,13 +94,22 @@ function setup() {
 	mapHeight = windowHeight;
 	windowX = windowWidth;
 	windowY = mapHeight //; + 250;
-	canvas = createCanvas(windowX, windowY - 34);
-	colorMode(HSB);
+	canvas = createCanvas(windowX, windowY - headerHeight); //P5.js function
+	colorMode(HSB); //P5.js function
 	mode = choosemapmode;
 	iterationsperframe = 1;
 	margin = 0.1; // don't pull data in the extreme edges of the map
-	showMessage("Zoom to selected area, then click here");
-
+	olDraw = new ol.interaction.Draw({
+		source: vectorSource,
+		type: "Polygon",
+	});
+	olDraw.on('drawend', function(event) {
+		openlayersmap.removeInteraction(olDraw);
+		polygon = event.feature.getGeometry()
+		olDrawCoordinates = polygon.getCoordinates()[0]
+	});
+	openlayersmap.addInteraction(olDraw);
+	showMessage("Create a polygon, then click here");
 }
 
 function draw() { //main loop called by the P5.js framework every frame
@@ -79,8 +117,6 @@ function draw() { //main loop called by the P5.js framework every frame
 		isTouchScreenDevice = true;
 	} // detect touch screen device such as mobile
 	clear();
-	drawMask(); //frame the active area on the map
-
 	if (mode != choosemapmode) {
 		if (showRoads) {
 			showEdges(); //draw connections between nodes
@@ -141,20 +177,33 @@ function getOverpassData() { //load nodes and edge map data in XML format from O
 	canvas.position(0, 34); // start canvas just below logo image
 	bestroute = null;
 	totaluniqueroads=0;
-	var extent = ol.proj.transformExtent(openlayersmap.getView().calculateExtent(openlayersmap.getSize()), 'EPSG:3857', 'EPSG:4326'); //get the coordinates current view on the map
-	mapminlat = extent[1];
-	mapminlon = extent[0];
-	mapmaxlat = extent[3];
-	mapmaxlon = extent[2]; //51.62354589659512,0.3054885475158691,51.635853268644496,0.33291145248413084
-	dataminlat = extent[1] + (extent[3] - extent[1]) * margin; //51.62662273960746,0.31234427375793455,51.63277642563215,0.3260557262420654
-	dataminlon = extent[0] + (extent[2] - extent[0]) * margin;
-	datamaxlat = extent[3] - (extent[3] - extent[1]) * margin;
-	datamaxlon = extent[2] - (extent[2] - extent[0]) * margin;
-	let OverpassURL = "https://overpass-api.de/api/interpreter?data=";
-	let overpassquery = "(way({{bbox}})['highway']['highway' !~ 'trunk']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'service']['highway' !~ 'elevator']['footway' !~ 'crossing']['footway' !~ 'sidewalk']['foot' !~ 'no']['access' !~ 'private']['access' !~ 'no'];node(w)({{bbox}}););out;";
+	var LonLat = "";
+	for (let i = 1; i < olDrawCoordinates.length; i++) { //skip the first coordinates (duplicated in the last)
+		const coord = ol.proj.toLonLat(olDrawCoordinates[i])
+		if (i > 1) {
+			LonLat += " "
+		}
+		mapminlat = min(coord[1], mapminlat) //P5 function
+		mapmaxlat = max(coord[1], mapmaxlat)
+		mapminlon = min(coord[0], mapminlon)
+		mapmaxlon = max(coord[0], mapmaxlon)
 
-	overpassquery = overpassquery.replace("{{bbox}}", dataminlat + "," + dataminlon + "," + datamaxlat + "," + datamaxlon);
-	overpassquery = overpassquery.replace("{{bbox}}", dataminlat + "," + dataminlon + "," + datamaxlat + "," + datamaxlon);
+		const pixelCoordinate = openlayersmap.getPixelFromCoordinate(olDrawCoordinates[i]) //X = long = -1.... | Y = lat = 47....
+		polygonminX = min(pixelCoordinate[0], polygonminX) //P5 function
+		polygonmaxX = max(pixelCoordinate[0], polygonmaxX)
+		polygonminY = min(pixelCoordinate[1], polygonminY)
+		polygonmaxY = max(pixelCoordinate[1], polygonmaxY)
+
+		LonLat = LonLat + coord[1] + " " + coord[0]
+	}
+
+	let OverpassURL = "https://overpass-api.de/api/interpreter?data=";
+	let overpassquery = "(way(poly:\"{{bbox}}\"){{filter}};node(w)(poly:\"{{bbox}}\"););out;";
+	let filter = "['highway']['highway' !~ 'trunk']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'service']['highway' !~ 'elevator']['footway' !~ 'crossing']['footway' !~ 'sidewalk']['foot' !~ 'no']['access' !~ 'private']['access' !~ 'no']"
+
+	overpassquery = overpassquery.replace("{{bbox}}", LonLat);
+	overpassquery = overpassquery.replace("{{bbox}}", LonLat);
+	overpassquery = overpassquery.replace("{{filter}}", filter);
 	OverpassURL = OverpassURL + encodeURI(overpassquery);
 	httpGet(OverpassURL, 'text', false, function (response) {
 		let OverpassResponse = response;
@@ -167,7 +216,7 @@ function getOverpassData() { //load nodes and edge map data in XML format from O
 		for (let i = 0; i < numnodes; i++) {
 			var lat = XMLnodes[i].getAttribute('lat');
 			var lon = XMLnodes[i].getAttribute('lon');
-			minlat = min(minlat, lat);
+			minlat = min(minlat, lat); //P5 function
 			maxlat = max(maxlat, lat);
 			minlon = min(minlon, lon);
 			maxlon = max(maxlon, lon);
@@ -293,7 +342,12 @@ function solveRES() {
 
 function mousePressed() { // clicked on map to select a node
 	if (mode == choosemapmode && mouseY < btnBRy && mouseY > btnTLy && mouseX > btnTLx && mouseX < btnBRx) { // Was in Choose map mode and clicked on button
-		getOverpassData();
+		openlayersmap.getView().fit(polygon,
+			{
+				padding: [polygonPadding, polygonPadding, polygonPadding + headerHeight, polygonPadding],
+				duration: 1000,
+				callback: getOverpassData,
+			})
 		return;
 	}
 	if (mode == selectnodemode && mouseY < mapHeight) { // Select node mode, and clicked on map
@@ -383,7 +437,7 @@ function showMessage(msg) {
 	msgDiv = createDiv('');
 	msgDiv.style('position', 'fixed');
 	msgDiv.style('width', btnwidth + 'px');
-	msgDiv.style('top', ypos + 57 + 'px');
+	msgDiv.style('top', ypos + 45 + 'px');
 	msgDiv.style('left', '50%');
 	msgDiv.style('color', 'white');
 	msgDiv.style('background', 'none');
@@ -394,7 +448,8 @@ function showMessage(msg) {
 	msgDiv.style('font-size', '16px');
 	msgDiv.style('text-align', 'center');
 	msgDiv.style('vertical-align', 'middle');
-	msgDiv.style('height', '50px');
+	msgDiv.style('height', '30px');
+	msgDiv.style('cursor', 'pointer');
 	msgDiv.html(msg);
 	btnTLx = windowWidth / 2 - 200; // area that is touch/click sensitive
 	btnTLy = ypos - 4;
@@ -405,13 +460,6 @@ function showMessage(msg) {
 function hideMessage() {
 	msgbckDiv.remove();
 	msgDiv.remove();
-}
-
-function drawMask() {
-	noFill();
-	stroke(0, 000, 255, 0.4);
-	strokeWeight(0.5);
-	rect(windowWidth * margin, windowHeight * margin, windowWidth * (1 - 2 * margin), windowHeight * (1 - 2 * margin));
 }
 
 function trimSelectedEdge() {

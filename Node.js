@@ -4,9 +4,8 @@ class Node {
 		this.lat = lat_;
 		this.lon = lon_;
 		this.pos = createVector(1, 1);
-		this.x = map(this.lon, mapminlon, mapmaxlon, 0, mapWidth);
-		this.y = map(this.lat, mapminlat, mapmaxlat, mapHeight, 0);
-		this.edges = [];
+		this.x = map(this.lon, mapminlon, mapmaxlon, polygonminX, polygonmaxX);
+		this.y = map(this.lat, mapminlat, mapmaxlat, polygonmaxY, polygonminY);
 	}
 
 	show() {
