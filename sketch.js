@@ -18,16 +18,6 @@ var openlayersmap = new ol.Map({
     center: ol.proj.fromLonLat([5.95, 47.26]),
     zoom: 12,
   }),
-  interactions: ol.interaction.defaults.defaults().extend([
-    new ol.interaction.DragRotateAndZoom({
-      condition: function (mapBrowserEvent) {
-        return (
-          mapBrowserEvent.originalEvent.isPrimary &&
-          mapBrowserEvent.originalEvent.buttons == 4
-        )
-      },
-    }),
-  ]),
   controls: ol.control.defaults
     .defaults()
     .extend([new ol.control.ZoomSlider()]),
