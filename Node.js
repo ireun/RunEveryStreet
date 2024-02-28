@@ -6,12 +6,14 @@ class Node {
   x
   y
   edges = []
+  reachableEdges = []
 
   /**
    *
+   * @constructor
    * @param {number} nodeId_ Node ID
-   * @param {number} lat_ Latitude
-   * @param {number} lon_ Longitude
+   * @param {number} lat_    Latitude
+   * @param {number} lon_    Longitude
    */
   constructor(nodeId_, lat_, lon_) {
     this.nodeId = nodeId_

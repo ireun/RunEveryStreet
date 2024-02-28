@@ -77,6 +77,12 @@ var polygonminX = Infinity,
   polygonmaxX = -Infinity,
   polygonminY = Infinity,
   polygonmaxY = -Infinity
+var settings = {
+  category: "walk", //walk = no oneway ; car = oneway ; bicycle = oneway:bicycle
+  oneway: false,
+}
+var stack = []
+var stack2 = []
 
 function setup() {
   //P5.js
@@ -97,6 +103,18 @@ function setup() {
   mapHeight = windowHeight
   windowX = windowWidth
   windowY = mapHeight //; + 250;
+  switch (settings.category) {
+    case "walk":
+      settings.oneway = false
+      break
+    case "car":
+    case "bicycle":
+      settings.oneway = true
+      break
+
+    default:
+      break
+  }
   canvas = createCanvas(windowX, windowY - headerHeight) //P5.js function
   colorMode(HSB) //P5.js function
   mode = choosemapmode
@@ -132,9 +150,9 @@ function draw() {
         let solutionfound = false
         while (!solutionfound) {
           //run randomly down least roads until all roads have been run
-          shuffle(currentnode.edges, true)
-          currentnode.edges.sort((a, b) => a.travels - b.travels) // sort edges around node by number of times traveled, and travel down least.
-          let edgewithleasttravels = currentnode.edges[0]
+          shuffle(currentnode.reachableEdges, true) //P5js function
+          currentnode.reachableEdges.sort((a, b) => a.travels - b.travels) // sort edges around node by number of times traveled, and travel down least.
+          let edgewithleasttravels = currentnode.reachableEdges[0]
           let nextNode = edgewithleasttravels.OtherNodeofEdge(currentnode)
           edgewithleasttravels.travels++
           currentroute.addWaypoint(nextNode, edgewithleasttravels.distance)
@@ -253,12 +271,39 @@ function getOverpassData() {
     //parse ways into edges
     for (let i = 0; i < numways; i++) {
       let wayid = XMLways[i].getAttribute("id")
+
+      // check if oneway for the settings
+      let oneway = false
+      if (settings.oneway) {
+        let onewayTag = null
+        let onewayBicycleTag = null
+        let tagsinsideway = XMLways[i].getElementsByTagName("tag")
+        for (const tag of tagsinsideway) {
+          var tagValue = tag.getAttribute("k")
+          if (tagValue == "oneway") {
+            onewayTag = tag.getAttribute("v") == "yes"
+          }
+          if (tagValue == "oneway:bicycle") {
+            onewayBicycleTag = tag.getAttribute("v") == "yes"
+          }
+          if (tagValue == "junction" && tag.getAttribute("v") == "roundabout") {
+            onewayTag = true
+          }
+        }
+        if (settings.category == "car" && onewayTag != null) {
+          oneway = onewayTag
+        }
+        if (settings.category == "bicycle" && onewayTag) {
+          oneway = !(onewayBicycleTag == false)
+        }
+      }
+
       let nodesinsideway = XMLways[i].getElementsByTagName("nd")
       for (let j = 0; j < nodesinsideway.length - 1; j++) {
         fromnode = getNodebyId(nodesinsideway[j].getAttribute("ref"))
         tonode = getNodebyId(nodesinsideway[j + 1].getAttribute("ref"))
         if ((fromnode != null) & (tonode != null)) {
-          let newEdge = new Edge(fromnode, tonode, wayid)
+          let newEdge = new Edge(fromnode, tonode, wayid, oneway)
           edges.push(newEdge)
           totaledgedistance += newEdge.distance
         }
@@ -309,28 +354,43 @@ function showEdges() {
 }
 
 function resetEdges() {
-  for (let i = 0; i < edges.length; i++) {
-    edges[i].travels = 0
+  for (const edge of edges) {
+    edge.travels = 0
+    edge.visited = false
   }
 }
 
+/**
+ * remove unreachable nodes and edges
+ */
 function removeOrphans() {
-  // remove unreachable nodes and edges
   resetEdges()
   currentnode = startnode
-  floodfill(currentnode, 1) // recursively walk every unwalked route until all connected nodes have been reached at least once, then remove unwalked ones.
+  stack = []
+  stack2 = []
+  floodfill(currentnode, 1)
   let newedges = []
   let newnodes = []
   totaledgedistance = 0
-  for (let i = 0; i < edges.length; i++) {
-    if (edges[i].travels > 0) {
-      newedges.push(edges[i])
-      totaledgedistance += edges[i].distance
-      if (!newnodes.includes(edges[i].from)) {
-        newnodes.push(edges[i].from)
+  for (const edge of edges) {
+    if (edge.travels > 0) {
+      newedges.push(edge)
+      totaledgedistance += edge.distance
+      if (!newnodes.includes(edge.from)) {
+        newnodes.push(edge.from)
       }
-      if (!newnodes.includes(edges[i].to)) {
-        newnodes.push(edges[i].to)
+      if (!newnodes.includes(edge.to)) {
+        newnodes.push(edge.to)
+      }
+    } else {
+      deleteElementFromArray(edge, edge.from.edges)
+      deleteElementFromArray(edge, edge.to.edges)
+      if (settings.oneway) {
+        deleteElementFromArray(edge, edge.from.reachableEdges)
+        deleteElementFromArray(edge, edge.to.reachableEdges)
+      } else {
+        edge.from.reachableEdges = edge.from.edges
+        edge.to.reachableEdges = edge.to.edges
       }
     }
   }
@@ -339,11 +399,55 @@ function removeOrphans() {
   resetEdges()
 }
 
+/**
+ * recursively walk every unwalked route until all connected nodes have been reached at least once
+ * @param {Node} node node to explore from
+ * @param {Number} stepssofar how deep we are in the graph
+ */
 function floodfill(node, stepssofar) {
-  for (let i = 0; i < node.edges.length; i++) {
-    if (node.edges[i].travels == 0) {
-      node.edges[i].travels = stepssofar
-      floodfill(node.edges[i].OtherNodeofEdge(node), stepssofar + 1)
+  for (const reachableEdge of node.reachableEdges) {
+    if (
+      settings.oneway &&
+      ((node == currentnode && stepssofar > 1) ||
+        (reachableEdge.visited &&
+          reachableEdge.travels > 0 &&
+          stack.length > 0 &&
+          !(stack.includes(reachableEdge) || stack2.includes(reachableEdge))))
+    ) {
+      //clean the stacks if it's not a dead end
+      stack = [] //to save the explored edges when we go down in the recusion (in the graph)
+      stack2 = [] //to save the explored edges when we go up in the recusion (in the graph)
+    }
+    if (!reachableEdge.visited) {
+      reachableEdge.travels = stepssofar
+      reachableEdge.visited = true
+      if (settings.oneway && (reachableEdge.oneway || stack.length > 0)) {
+        //we save the edge if it is one way (and potentially a dead end) |OR| if we already are in a dead end
+        stack.push(reachableEdge)
+      }
+      floodfill(reachableEdge.OtherNodeofEdge(node), stepssofar + 1) //let's go deaper in the graph
+      if (settings.oneway && stack.length + stack2.length > 0) {
+        //if the stacks are not empty, we didn't find an exit for the dead end yet...
+        if (
+          !reachableEdge.travels > 0 ||
+          stack.includes(reachableEdge) ||
+          stack2.includes(reachableEdge)
+        ) {
+          if (!stack2.includes(reachableEdge)) {
+            stack2.push(reachableEdge) //...so we save the edge in the stack2. Waiting for a confirmation (dead end or not)
+          }
+          if (stack.includes(reachableEdge)) {
+            deleteElementFromArray(reachableEdge, stack)
+            if (reachableEdge.oneway) {
+              //if the last edge is a oneway, it was a dead end and we'll be able to remove all the edges deaper
+              for (const edge of stack2) {
+                edge.travels = 0
+              }
+              stack2 = []
+            }
+          }
+        }
+      }
     }
   }
 }
@@ -537,21 +641,28 @@ function hideMessage() {
   msgDiv.remove()
 }
 
+/**
+ * Remove a element from the array
+ *
+ * @param {Object} elementToDelete object to delete from the array
+ * @param {Array} array array where the element will be removed
+ */
+function deleteElementFromArray(elementToDelete, array) {
+  if (array.includes(elementToDelete)) {
+    array.splice(
+      array.findIndex((element) => element == elementToDelete),
+      1
+    )
+  }
+}
+
 function trimSelectedEdge() {
   if (closestedgetomouse >= 0) {
     let edgetodelete = edges[closestedgetomouse]
-    edges.splice(
-      edges.findIndex((element) => element == edgetodelete),
-      1
-    )
-    for (let i = 0; i < nodes.length; i++) {
-      // remove references to the deleted edge from within each of the nodes
-      if (nodes[i].edges.includes(edgetodelete)) {
-        nodes[i].edges.splice(
-          nodes[i].edges.findIndex((element) => element == edgetodelete),
-          1
-        )
-      }
+    deleteElementFromArray(edgetodelete, edges)
+    for (const node of nodes) {
+      deleteElementFromArray(edgetodelete, node.edges)
+      deleteElementFromArray(edgetodelete, node.reachableEdges)
     }
     removeOrphans() // deletes parts of the network that no longer can be reached.
     closestedgetomouse = -1

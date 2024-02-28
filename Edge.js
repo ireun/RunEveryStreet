@@ -4,18 +4,22 @@ class Edge {
   to
   travels
   distance
+  oneway
+  visited
 
   /**
    * section of road that connects nodes
    *
-   * @param {Node} from_
-   * @param {Node} to_
-   * @param {Number} wayid_ OSM ID
+   * @param {Node}    from_
+   * @param {Node}    to_
+   * @param {Number}  wayid_ OSM ID
+   * @param {boolean} oneway
    */
-  constructor(from_, to_, wayid_) {
+  constructor(from_, to_, wayid_, oneway) {
     this.wayid = wayid_
     this.from = from_
     this.to = to_
+    this.oneway = oneway
     this.travels = 0
     this.distance = calcdistance(
       this.from.lat,
@@ -25,9 +29,13 @@ class Edge {
     )
     if (!this.from.edges.includes(this)) {
       this.from.edges.push(this)
+      this.from.reachableEdges.push(this)
     }
     if (!this.to.edges.includes(this)) {
       this.to.edges.push(this)
+      if (!this.oneway) {
+        this.to.reachableEdges.push(this)
+      }
     }
   }
 
@@ -37,6 +45,15 @@ class Edge {
     line(this.from.x, this.from.y, this.to.x, this.to.y)
     fill(0)
     noStroke()
+    if (this.oneway) {
+      push()
+      var angle = atan2(this.from.y - this.to.y, this.from.x - this.to.x)
+      translate(this.to.x, this.to.y)
+      rotate(angle - HALF_PI)
+      var offset = 7
+      triangle(0, offset, offset * 0.5, offset, 0, -offset / 2)
+      pop()
+    }
   }
 
   highlight() {
@@ -55,8 +72,28 @@ class Edge {
     }
   }
 
+  /**
+   * Replaces the oldNode with the newNode for this edge
+   *
+   * @param {Node} oldNode old node to replace
+   * @param {Node} newNode new node for si edge
+   */
+  replaceNode(oldNode, newNode) {
+    if (this.to == oldNode) {
+      this.to = newNode
+    } else {
+      this.from = newNode
+    }
+  }
+
+  /**
+   * Gives distance from middle of this edge to give point
+   * 
+   * @param {Number} x x coordinates of the point
+   * @param {Number} y y coordinates of the point
+   * @returns 
+   */
   distanceToPoint(x, y) {
-    //distance from middle of this edge to give point
     return dist(
       x,
       y,
