@@ -34,3 +34,23 @@ The tool pulls map data from OpenStreetMap, converts it into a mathematical mode
 	6. At this point the route is complete and is drawn on the map, coloured from red at the start to green at the finish.
 	9. Keep repeating above to create a large set of possible solutions until the user stops the process.
 	10. Pick the shortest route of all those created and export it to GPX file for download
+
+The original live website can be accessed here: https://solipsia.github.io/RunEveryStreet/
+
+## TODO
+- [x] pouvoir sélectionner une zone pour l'import
+- [x] prendre en charge les sens uniques
+- [ ] mettre à jour les captures d'écrans
+- [ ] mettre en place un site live
+- [ ] ajouter une légende sur les couleurs lors du calcul du meilleur itinéraire
+- [ ] modification du filtre des données (mode car, walk, bicycle)
+- [ ] prendre en compte les interdictions de tourner
+- [ ] pouvoir annuler une suppression de chemin
+- [ ] revoir l’algo de recherche du meilleur chemin (problème du postier chinois)
+- [ ] importer les chemins parcourus avec Panoramax
+- [ ] revoir la gestion des boutons et cliques
+- [ ] ajouter la possibilité de zoomer lors de la suppression des chemins
+- [ ] pouvoir simplifier les chemins en supprimant les noeuds superflus
+- [ ] afficher différement les chemins en fonction de leur type (route, piste cyclable, chemin etc...)
+- [ ] ajouter une traduction en/fr
+- [ ] voir s'il est possible de modifier le polygone après coup
