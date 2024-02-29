@@ -1,5 +1,8 @@
 # Run Every Street
 
+Or "**Let's go everyway !**"
+Live site here : [https://clementh44.github.io/RunEveryStreet/]([url](https://clementh44.github.io/RunEveryStreet/))
+
 This repo is a tweaked fork from [Solipsia's RunEveryStreet](https://github.com/solipsia/RunEveryStreet).
 
 The rationale behind it is to use for street imagery where one use a road vehicle (car, bicycle, moped,…) to take pictures from streets in an efficient manner. As such, sidewalks would add unnecessary overlaps.
@@ -41,7 +44,7 @@ The original live website can be accessed here: https://solipsia.github.io/RunEv
 - [x] pouvoir sélectionner une zone pour l'import
 - [x] prendre en charge les sens uniques
 - [ ] mettre à jour les captures d'écrans
-- [ ] mettre en place un site live
+- [x] mettre en place un site live
 - [ ] ajouter une légende sur les couleurs lors du calcul du meilleur itinéraire
 - [ ] modification du filtre des données (mode car, walk, bicycle)
 - [ ] prendre en compte les interdictions de tourner
