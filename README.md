@@ -1,7 +1,7 @@
 # Run Every Street
 
 Or "**Let's go everyway !**"
-Live site here : [https://clementh44.github.io/RunEveryStreet/]([url](https://clementh44.github.io/RunEveryStreet/))
+Live site here : [https://clementh44.github.io/RunEveryStreet/](https://clementh44.github.io/RunEveryStreet/)
 
 This repo is a tweaked fork from [Solipsia's RunEveryStreet](https://github.com/solipsia/RunEveryStreet).
 
