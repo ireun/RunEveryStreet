@@ -51,9 +51,10 @@ The original live website can be accessed here: https://solipsia.github.io/RunEv
 - [ ] pouvoir annuler une suppression de chemin
 - [ ] revoir l’algo de recherche du meilleur chemin (problème du postier chinois)
 - [ ] importer les chemins parcourus avec Panoramax
-- [ ] revoir la gestion des boutons et cliques
+- [x] revoir la gestion des boutons et cliques
 - [ ] ajouter la possibilité de zoomer lors de la suppression des chemins
 - [ ] pouvoir simplifier les chemins en supprimant les noeuds superflus
 - [ ] afficher différement les chemins en fonction de leur type (route, piste cyclable, chemin etc...)
 - [ ] ajouter une traduction en/fr
 - [ ] voir s'il est possible de modifier le polygone après coup
+- [ ] ajouter un avertissement en cas de zone très grande

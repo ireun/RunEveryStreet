@@ -26,7 +26,7 @@ var openlayersmap = new ol.Map({
 var canvas
 var mapHeight
 var windowX, windowY
-var headerHeight = 34
+var headerHeight
 var polygonPadding = 40
 let txtoverpassQuery
 var OSMxml
@@ -46,10 +46,10 @@ var totaledgedistance = 0
 var closestnodetomouse = -1
 var closestedgetomouse = -1
 var startnode, currentnode
-var selectnodemode = 1,
-  solveRESmode = 2,
-  choosemapmode = 3,
-  trimmode = 4,
+var selectnodemode = 2,
+  solveRESmode = 4,
+  choosemapmode = 1,
+  trimmode = 3,
   downloadGPXmode = 5
 var mode
 var remainingedges
@@ -61,9 +61,8 @@ var bestdoublingsup
 var showSteps = false
 var showRoads = true
 var iterations, iterationsperframe
-var msgbckDiv, msgDiv, reportbckDiv, reportmsgDiv
+var actionButton = document.querySelector("#action-button")
 var margin
-var btnTLx, btnTLy, btnBRx, btnBRy // button's top left and bottom right x and y coordinates.
 var starttime
 var efficiencyhistory = [],
   distancehistory = []
@@ -99,10 +98,12 @@ function setup() {
         )
     })
   }
+  headerHeight = document.getElementById("header").clientHeight
   mapWidth = windowWidth
-  mapHeight = windowHeight
+  mapHeight = windowHeight - headerHeight
   windowX = windowWidth
   windowY = mapHeight //; + 250;
+  actionButton.addEventListener("click", actionButtonClicked)
   switch (settings.category) {
     case "walk":
       settings.oneway = false
@@ -115,7 +116,8 @@ function setup() {
     default:
       break
   }
-  canvas = createCanvas(windowX, windowY - headerHeight) //P5.js function
+  canvas = createCanvas(windowX, windowY) //P5.js function
+  canvas.mousePressed(canvasClicked)
   colorMode(HSB) //P5.js function
   mode = choosemapmode
   iterationsperframe = 1
@@ -128,9 +130,10 @@ function setup() {
     openlayersmap.removeInteraction(olDraw)
     polygon = event.feature.getGeometry()
     olDrawCoordinates = polygon.getCoordinates()[0]
+    updateActionButton("Validate the polygon", false, false)
   })
   openlayersmap.addInteraction(olDraw)
-  showMessage("Create a polygon, then click here")
+  updateActionButton("Create a polygon, then click here", true, false)
 }
 
 function draw() {
@@ -206,8 +209,7 @@ function draw() {
 
 function getOverpassData() {
   //load nodes and edge map data in XML format from OpenStreetMap via the Overpass API
-  showMessage("Loading map data…")
-  canvas.position(0, 34) // start canvas just below logo image
+  canvas.position(0, headerHeight) // start canvas just below logo image
   bestroute = null
   totaluniqueroads = 0
   var LonLat = ""
@@ -310,7 +312,7 @@ function getOverpassData() {
       }
     }
     mode = selectnodemode
-    showMessage("Click on start of route")
+    updateActionButton("Click on start of route", true, false)
   })
 }
 
@@ -464,16 +466,10 @@ function solveRES() {
   starttime = millis()
 }
 
-function mousePressed() {
-  // clicked on map to select a node
-  if (
-    mode == choosemapmode &&
-    mouseY < btnBRy &&
-    mouseY > btnTLy &&
-    mouseX > btnTLx &&
-    mouseX < btnBRx
-  ) {
+function actionButtonClicked() {
+  if (mode == choosemapmode) {
     // Was in Choose map mode and clicked on button
+    updateActionButton("Loading map data…", true, true)
     openlayersmap.getView().fit(polygon, {
       padding: [
         polygonPadding,
@@ -486,43 +482,17 @@ function mousePressed() {
     })
     return
   }
-  if (mode == selectnodemode && mouseY < mapHeight) {
-    // Select node mode, and clicked on map
-    showNodes() //find node closest to mouse
-    mode = trimmode
-    showMessage("Click on roads to trim, then click here")
-    removeOrphans() // deletes parts of the network that cannot be reached from start
+  if (mode == trimmode) {
+    mode = solveRESmode
+    updateActionButton("Calculating… Click to stop when satisfied", false, true)
+    showNodes() // recalculate closest node
+    solveRES()
     return
   }
-  if (mode == trimmode) {
-    showEdges() // find closest edge
-    if (
-      mouseY < btnBRy &&
-      mouseY > btnTLy &&
-      mouseX > btnTLx &&
-      mouseX < btnBRx
-    ) {
-      // clicked on button
-      mode = solveRESmode
-      showMessage("Calculating… Click to stop when satisfied")
-      showNodes() // recalculate closest node
-      solveRES()
-      return
-    } else {
-      // clicked on edge to remove it
-      trimSelectedEdge()
-    }
-  }
-  if (
-    mode == solveRESmode &&
-    mouseY < btnBRy &&
-    mouseY > btnTLy &&
-    mouseX > btnTLx &&
-    mouseX < btnBRx
-  ) {
+  if (mode == solveRESmode) {
     // Was busy solving and user clicked on button
     mode = downloadGPXmode
-    hideMessage()
+    updateActionButton("Download route (.gpx)", false, false)
     //calculate total unique roads (ways):
     let uniqueways = []
     for (let i = 0; i < edges.length; i++) {
@@ -533,16 +503,27 @@ function mousePressed() {
     totaluniqueroads = uniqueways.length
     return
   }
-  if (
-    mode == downloadGPXmode &&
-    mouseY < height / 2 + 200 + 40 &&
-    mouseY > height / 2 + 200 &&
-    mouseX > width / 2 - 140 &&
-    mouseX < width / 2 - 140 + 280
-  ) {
-    // Clicked Download Route rect(width/2-140,height/2+200,280,40);
+  if (mode == downloadGPXmode) {
+    // Clicked Download Route
     bestroute.exportGPX()
     return
+  }
+}
+
+function canvasClicked() {
+  // clicked on map to select a node
+  if (mode == selectnodemode) {
+    // Select node mode, and clicked on map
+    showNodes() //find node closest to mouse
+    mode = trimmode
+    updateActionButton("Click on roads to trim, then click here")
+    removeOrphans() // deletes parts of the network that cannot be reached from start
+    return
+  }
+  if (mode == trimmode) {
+    showEdges() // find closest edge
+    // clicked on edge to remove it
+    trimSelectedEdge()
   }
 }
 
@@ -593,52 +574,20 @@ function getNodebyId(id) {
   return null
 }
 
-function showMessage(msg) {
-  if (msgDiv) {
-    hideMessage()
+/**
+ * Update the action button
+ * @param {String}  msg       message to display
+ * @param {Boolean} disabled  if button enabled or disabled
+ * @param {Boolean} spinner   spinner enabled
+ */
+function updateActionButton(msg, disabled, spinner) {
+  actionButton.querySelectorAll("span")[1].innerHTML = msg
+  actionButton.disabled = disabled
+  if (spinner) {
+    actionButton.querySelectorAll("span")[0].classList.remove("d-none")
+  } else {
+    actionButton.querySelectorAll("span")[0].classList.add("d-none")
   }
-  let ypos = 20
-  let btnwidth = 320
-  msgbckDiv = createDiv("")
-  msgbckDiv.style("position", "fixed")
-  msgbckDiv.style("width", btnwidth + "px")
-  msgbckDiv.style("top", ypos + 45 + "px")
-  msgbckDiv.style("left", "50%")
-  msgbckDiv.style("background", "black")
-  msgbckDiv.style("opacity", "0.3")
-  msgbckDiv.style("-webkit-transform", "translate(-50%, -50%)")
-  msgbckDiv.style("transform", "translate(-50%, -50%)")
-  msgbckDiv.style("height", "30px")
-  msgbckDiv.style("border-radius", "7px")
-  msgDiv = createDiv("")
-  msgDiv.style("position", "fixed")
-  msgDiv.style("width", btnwidth + "px")
-  msgDiv.style("top", ypos + 45 + "px")
-  msgDiv.style("left", "50%")
-  msgDiv.style("color", "white")
-  msgDiv.style("background", "none")
-  msgDiv.style("opacity", "1")
-  msgDiv.style("-webkit-transform", "translate(-50%, -50%)")
-  msgDiv.style("transform", "translate(-50%, -50%)")
-  msgDiv.style(
-    "font-family",
-    '"Lucida Sans Unicode", "Lucida Grande", sans-serif'
-  )
-  msgDiv.style("font-size", "16px")
-  msgDiv.style("text-align", "center")
-  msgDiv.style("vertical-align", "middle")
-  msgDiv.style("height", "30px")
-  msgDiv.style("cursor", "pointer")
-  msgDiv.html(msg)
-  btnTLx = windowWidth / 2 - 200 // area that is touch/click sensitive
-  btnTLy = ypos - 4
-  btnBRx = btnTLx + 400
-  btnBRy = btnTLy + 32
-}
-
-function hideMessage() {
-  msgbckDiv.remove()
-  msgDiv.remove()
 }
 
 /**
@@ -716,9 +665,9 @@ function drawProgressGraph() {
 function showReportOut() {
   fill(250, 255, 0, 0.6)
   noStroke()
-  rect(width / 2 - 150, height / 2 - 250, 300, 500)
+  rect(width / 2 - 150, height / 2 - 250, 300, 450)
   fill(250, 255, 0, 0.15)
-  rect(width / 2 - 147, height / 2 - 247, 300, 500)
+  rect(width / 2 - 147, height / 2 - 247, 300, 450)
   strokeWeight(1)
   stroke(20, 255, 255, 0.8)
   line(width / 2 - 150, height / 2 - 200, width / 2 + 150, height / 2 - 200)
@@ -748,12 +697,6 @@ function showReportOut() {
     width / 2,
     height / 2 - 120 + 3 * 95
   )
-
-  fill(20, 255, 100, 0.75)
-  rect(width / 2 - 140, height / 2 + 200, 280, 40)
-  fill(0, 0, 255, 1)
-  textSize(28)
-  text("Download Route", width / 2, height / 2 + 230)
 }
 
 function showStatus() {
