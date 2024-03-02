@@ -1,211 +1,232 @@
-const vectorSource = new ol.source.Vector({
-  wrapX: false,
-})
-const vector = new ol.layer.Vector({
-  source: vectorSource,
-})
-var openlayersmap = new ol.Map({
-  //OpenLayers https://openlayers.org
-  target: "OSMmap",
-  layers: [
-    new ol.layer.Tile({
-      source: new ol.source.OSM(),
-      opacity: 0.5,
-    }),
-    vector,
-  ],
-  view: new ol.View({
-    center: ol.proj.fromLonLat([5.95, 47.26]),
-    zoom: 12,
-  }),
-  controls: ol.control.defaults
-    .defaults()
-    .extend([new ol.control.ZoomSlider()]),
-})
+import Node from "./Node.js"
+import Edge from "./Edge.js"
+import Route from "./Route.js"
+import Map from "ol/Map"
+import OSM from "ol/source/OSM"
+import VectoreSource from "ol/source/Vector"
+import VectorLayer from "ol/layer/Vector"
+import View from "ol/View"
+import TileLayer from "ol/layer/Tile"
+import Draw from "ol/interaction/Draw"
+import { fromLonLat, toLonLat, transformExtent } from "ol/proj"
+import { defaults, ZoomSlider } from "ol/control"
+import "bootstrap"
+import "bootstrap/dist/css/bootstrap.min.css"
+import 'ol/ol.css'
+import p5 from "p5"
 
-var canvas
-var mapHeight
-var windowX, windowY
-var headerHeight
-var polygonPadding = 40
-let txtoverpassQuery
-var OSMxml
-var numnodes, numways
-var nodes
-var minlat = Infinity,
-  maxlat = -Infinity,
-  minlon = Infinity,
-  maxlon = -Infinity
-var nodes = [],
-  edges = []
-var mapminlat = Infinity,
-  mapmaxlat = -Infinity,
-  mapminlon = Infinity,
-  mapmaxlon = -Infinity
-var totaledgedistance = 0
-var closestnodetomouse = -1
-var closestedgetomouse = -1
-var startnode, currentnode
-var selectnodemode = 2,
-  solveRESmode = 4,
-  choosemapmode = 1,
-  trimmode = 3,
-  downloadGPXmode = 5
-var mode
-var remainingedges
-var debugsteps = 0
-var bestdistance
-var bestroute
-var bestarea
-var bestdoublingsup
-var showSteps = false
-var showRoads = true
-var iterations, iterationsperframe
-var actionButton = document.querySelector("#action-button")
-var margin
-var starttime
-var efficiencyhistory = [],
-  distancehistory = []
-var totalefficiencygains = 0
-var isTouchScreenDevice = false
-var totaluniqueroads
-var olDraw
-var olDrawCoordinates
-var polygon
-var polygonminX = Infinity,
-  polygonmaxX = -Infinity,
-  polygonminY = Infinity,
-  polygonmaxY = -Infinity
-var settings = {
-  category: "walk", //walk = no oneway ; car = oneway ; bicycle = oneway:bicycle
-  oneway: false,
-}
-var stack = []
-var stack2 = []
-
-function setup() {
-  //P5.js
-  if (navigator.geolocation) {
-    //if browser shares user GPS location, update map to center on it.
-    navigator.geolocation.getCurrentPosition(function (position) {
-      openlayersmap
-        .getView()
-        .setCenter(
-          ol.proj.fromLonLat([
-            position.coords.longitude,
-            position.coords.latitude,
-          ])
-        )
-    })
-  }
-  headerHeight = document.getElementById("header").clientHeight
-  mapWidth = windowWidth
-  mapHeight = windowHeight - headerHeight
-  windowX = windowWidth
-  windowY = mapHeight //; + 250;
-  actionButton.addEventListener("click", actionButtonClicked)
-  switch (settings.category) {
-    case "walk":
-      settings.oneway = false
-      break
-    case "car":
-    case "bicycle":
-      settings.oneway = true
-      break
-
-    default:
-      break
-  }
-  canvas = createCanvas(windowX, windowY) //P5.js function
-  canvas.mousePressed(canvasClicked)
-  colorMode(HSB) //P5.js function
-  mode = choosemapmode
-  iterationsperframe = 1
-  margin = 0.1 // don't pull data in the extreme edges of the map
-  olDraw = new ol.interaction.Draw({
+const vectorSource = new VectoreSource({
+    wrapX: false,
+  })
+  const vector = new VectorLayer({
     source: vectorSource,
-    type: "Polygon",
   })
-  olDraw.on("drawend", function (event) {
-    openlayersmap.removeInteraction(olDraw)
-    polygon = event.feature.getGeometry()
-    olDrawCoordinates = polygon.getCoordinates()[0]
-    updateActionButton("Validate the polygon", false, false)
+  var openlayersmap = new Map({
+    //OpenLayers https://openlayers.org
+    target: "OSMmap",
+    layers: [
+      new TileLayer({
+        source: new OSM(),
+        opacity: 0.5,
+      }),
+      vector,
+    ],
+    view: new View({
+      center: fromLonLat([5.95, 47.26]),
+      zoom: 12,
+    }),
+    controls: defaults().extend([new ZoomSlider()]),
   })
-  openlayersmap.addInteraction(olDraw)
-  updateActionButton("Create a polygon, then click here", true, false)
+  
+  var canvas
+  var mapHeight
+  var mapWidth
+  var windowX, windowY
+  var headerHeight
+  var polygonPadding = 40
+  let txtoverpassQuery
+  var OSMxml
+  var numnodes, numways
+  var nodes
+  var minlat = Infinity,
+    maxlat = -Infinity,
+    minlon = Infinity,
+    maxlon = -Infinity
+  var nodes = [],
+    edges = []
+export var mapminlat = Infinity,
+    mapmaxlat = -Infinity,
+    mapminlon = Infinity,
+    mapmaxlon = -Infinity
+  var totaledgedistance = 0
+  var closestnodetomouse = -1
+  var closestedgetomouse = -1
+  var startnode, currentnode
+  var selectnodemode = 2,
+    solveRESmode = 4,
+    choosemapmode = 1,
+    trimmode = 3,
+    downloadGPXmode = 5
+  var mode
+  var remainingedges
+  var debugsteps = 0
+  var bestdistance
+  var currentroute
+  export var bestroute
+  var bestarea
+  var bestdoublingsup
+  export var showSteps = false
+  var showRoads = true
+  var iterations, iterationsperframe
+  var actionButton = document.querySelector("#action-button")
+  var margin
+  var starttime
+  var efficiencyhistory = [],
+    distancehistory = []
+  var totalefficiencygains = 0
+  var isTouchScreenDevice = false
+  var totaluniqueroads
+  var olDraw
+  var olDrawCoordinates
+  var polygon
+export var polygonminX = Infinity,
+    polygonmaxX = -Infinity,
+    polygonminY = Infinity,
+    polygonmaxY = -Infinity
+  var settings = {
+    category: "walk", //walk = no oneway ; car = oneway ; bicycle = oneway:bicycle
+    oneway: false,
+  }
+  var stack = []
+  var stack2 = []
+
+function init() {
+      if (navigator.geolocation) {
+        //if browser shares user GPS location, update map to center on it.
+        navigator.geolocation.getCurrentPosition(function (position) {
+          openlayersmap
+            .getView()
+            .setCenter(
+              fromLonLat([position.coords.longitude, position.coords.latitude])
+            )
+        })
+      }
+      headerHeight = document.getElementById("header").clientHeight
+      actionButton.addEventListener("click", actionButtonClicked)
+      switch (settings.category) {
+        case "walk":
+          settings.oneway = false
+          break
+        case "car":
+        case "bicycle":
+          settings.oneway = true
+          break
+    
+        default:
+          break
+      }
+      mode = choosemapmode
+      olDraw = new Draw({
+        source: vectorSource,
+        type: "Polygon",
+      })
+      olDraw.on("drawend", function (event) {
+        openlayersmap.removeInteraction(olDraw)
+        polygon = event.feature.getGeometry()
+        olDrawCoordinates = polygon.getCoordinates()[0]
+        updateActionButton("Validate the polygon", false, false)
+      })
+      openlayersmap.addInteraction(olDraw)
+      updateActionButton("Create a polygon, then click here", true, false)
 }
 
-function draw() {
-  //main loop called by the P5.js framework every frame
-  if (touches.length > 0) {
-    isTouchScreenDevice = true
-  } // detect touch screen device such as mobile
-  clear()
-  if (mode != choosemapmode) {
-    if (showRoads) {
-      showEdges() //draw connections between nodes
+export let myp5 = new p5((sk) => {
+    sk.setup = () => {
+      console.log("setup")
+      mapWidth = sk.windowWidth
+      mapHeight = sk.windowHeight - headerHeight
+      windowX = sk.windowWidth
+      windowY = mapHeight
+      canvas = sk.createCanvas(windowX, windowY)
+      canvas.mousePressed(canvasClicked)
+      sk.colorMode(sk.HSB)
+      iterationsperframe = 1
+      margin = 0.1 // don't pull data in the extreme edges of the map
     }
-    if (mode == solveRESmode) {
-      iterationsperframe = max(0.01, iterationsperframe - 1 * (5 - frameRate())) // dynamically adapt iterations per frame to hit 5fps
-      for (let it = 0; it < iterationsperframe; it++) {
-        iterations++
-        let solutionfound = false
-        while (!solutionfound) {
-          //run randomly down least roads until all roads have been run
-          shuffle(currentnode.reachableEdges, true) //P5js function
-          currentnode.reachableEdges.sort((a, b) => a.travels - b.travels) // sort edges around node by number of times traveled, and travel down least.
-          let edgewithleasttravels = currentnode.reachableEdges[0]
-          let nextNode = edgewithleasttravels.OtherNodeofEdge(currentnode)
-          edgewithleasttravels.travels++
-          currentroute.addWaypoint(nextNode, edgewithleasttravels.distance)
-          currentnode = nextNode
-          if (edgewithleasttravels.travels == 1) {
-            // then first time traveled on this edge
-            remainingedges-- //fewer edges that have not been travelled
-          }
-          if (remainingedges == 0) {
-            //once all edges have been traveled, the route is complete. Work out total distance and see if this route is the best so far.
-            solutionfound = true
-            currentroute.distance += calcdistance(
-              currentnode.lat,
-              currentnode.lon,
-              startnode.lat,
-              startnode.lon
-            )
-            if (currentroute.distance < bestdistance) {
-              // this latest route is now record
-              bestroute = new Route(null, currentroute)
-              bestdistance = currentroute.distance
-              if (efficiencyhistory.length > 1) {
-                totalefficiencygains +=
-                  totaledgedistance / bestroute.distance -
-                  efficiencyhistory[efficiencyhistory.length - 1]
+    
+    sk.draw = () => {
+      //main loop called by the P5.js framework every frame
+      if (sk.touches.length > 0) {
+        isTouchScreenDevice = true
+      } // detect touch screen device such as mobile
+      sk.clear()
+      if (mode != choosemapmode) {
+        if (showRoads) {
+          showEdges() //draw connections between nodes
+        }
+        if (mode == solveRESmode) {
+          iterationsperframe = myp5.max(0.01, iterationsperframe - 1 * (5 - myp5.frameRate())) // dynamically adapt iterations per frame to hit 5fps
+          for (let it = 0; it < iterationsperframe; it++) {
+            iterations++
+            let solutionfound = false
+            while (!solutionfound) {
+              //run randomly down least roads until all roads have been run
+              myp5.shuffle(currentnode.reachableEdges, true) //P5js function
+              currentnode.reachableEdges.sort((a, b) => a.travels - b.travels) // sort edges around node by number of times traveled, and travel down least.
+              let edgewithleasttravels = currentnode.reachableEdges[0]
+              let nextNode = edgewithleasttravels.OtherNodeofEdge(currentnode)
+              edgewithleasttravels.travels++
+              currentroute.addWaypoint(nextNode, edgewithleasttravels.distance)
+              currentnode = nextNode
+              if (edgewithleasttravels.travels == 1) {
+                // then first time traveled on this edge
+                remainingedges-- //fewer edges that have not been travelled
               }
-              efficiencyhistory.push(totaledgedistance / bestroute.distance)
-              distancehistory.push(bestroute.distance)
+              if (remainingedges == 0) {
+                //once all edges have been traveled, the route is complete. Work out total distance and see if this route is the best so far.
+                solutionfound = true
+                currentroute.distance += calcdistance(
+                  currentnode.lat,
+                  currentnode.lon,
+                  startnode.lat,
+                  startnode.lon
+                )
+                if (currentroute.distance < bestdistance) {
+                  // this latest route is now record
+                  bestroute = new Route(null, currentroute)
+                  bestdistance = currentroute.distance
+                  if (efficiencyhistory.length > 1) {
+                    totalefficiencygains +=
+                      totaledgedistance / bestroute.distance -
+                      efficiencyhistory[efficiencyhistory.length - 1]
+                  }
+                  efficiencyhistory.push(totaledgedistance / bestroute.distance)
+                  distancehistory.push(bestroute.distance)
+                }
+                currentnode = startnode
+                remainingedges = edges.length
+                currentroute = new Route(currentnode, null)
+                resetEdges()
+              }
             }
-            currentnode = startnode
-            remainingedges = edges.length
-            currentroute = new Route(currentnode, null)
-            resetEdges()
           }
         }
+        showNodes()
+        if (bestroute != null) {
+          bestroute.show()
+        }
+        if (mode == solveRESmode) {
+          drawProgressGraph()
+        }
+        if (mode == downloadGPXmode) {
+          showReportOut()
+        }
+        //showStatus();
       }
     }
-    showNodes()
-    if (bestroute != null) {
-      bestroute.show()
-    }
-    if (mode == solveRESmode) {
-      drawProgressGraph()
-    }
-    if (mode == downloadGPXmode) {
-      showReportOut()
-    }
-    //showStatus();
-  }
-}
+  })
+
+
 
 function getOverpassData() {
   //load nodes and edge map data in XML format from OpenStreetMap via the Overpass API
@@ -215,22 +236,22 @@ function getOverpassData() {
   var LonLat = ""
   for (let i = 1; i < olDrawCoordinates.length; i++) {
     //skip the first coordinates (duplicated in the last)
-    const coord = ol.proj.toLonLat(olDrawCoordinates[i])
+    const coord = toLonLat(olDrawCoordinates[i])
     if (i > 1) {
       LonLat += " "
     }
-    mapminlat = min(coord[1], mapminlat) //P5 function
-    mapmaxlat = max(coord[1], mapmaxlat)
-    mapminlon = min(coord[0], mapminlon)
-    mapmaxlon = max(coord[0], mapmaxlon)
+    mapminlat = myp5.min(coord[1], mapminlat)
+    mapmaxlat = myp5.max(coord[1], mapmaxlat)
+    mapminlon = myp5.min(coord[0], mapminlon)
+    mapmaxlon = myp5.max(coord[0], mapmaxlon)
 
     const pixelCoordinate = openlayersmap.getPixelFromCoordinate(
       olDrawCoordinates[i]
     ) //X = long = -1.... | Y = lat = 47....
-    polygonminX = min(pixelCoordinate[0], polygonminX) //P5 function
-    polygonmaxX = max(pixelCoordinate[0], polygonmaxX)
-    polygonminY = min(pixelCoordinate[1], polygonminY)
-    polygonmaxY = max(pixelCoordinate[1], polygonmaxY)
+    polygonminX = myp5.min(pixelCoordinate[0], polygonminX)
+    polygonmaxX = myp5.max(pixelCoordinate[0], polygonmaxX)
+    polygonminY = myp5.min(pixelCoordinate[1], polygonminY)
+    polygonmaxY = myp5.max(pixelCoordinate[1], polygonmaxY)
 
     LonLat = LonLat + coord[1] + " " + coord[0]
   }
@@ -245,7 +266,7 @@ function getOverpassData() {
   overpassquery = overpassquery.replace("{{bbox}}", LonLat)
   overpassquery = overpassquery.replace("{{filter}}", filter)
   OverpassURL = OverpassURL + encodeURI(overpassquery)
-  httpGet(OverpassURL, "text", false, function (response) {
+  myp5.httpGet(OverpassURL, "text", false, function (response) {
     let OverpassResponse = response
     var parser = new DOMParser()
     OSMxml = parser.parseFromString(OverpassResponse, "text/xml")
@@ -256,10 +277,10 @@ function getOverpassData() {
     for (let i = 0; i < numnodes; i++) {
       var lat = XMLnodes[i].getAttribute("lat")
       var lon = XMLnodes[i].getAttribute("lon")
-      minlat = min(minlat, lat) //P5 function
-      maxlat = max(maxlat, lat)
-      minlon = min(minlon, lon)
-      maxlon = max(maxlon, lon)
+      minlat = myp5.min(minlat, lat)
+      maxlat = myp5.max(maxlat, lat)
+      minlon = myp5.min(minlon, lon)
+      maxlon = myp5.max(maxlon, lon)
     }
     nodes = []
     edges = []
@@ -302,8 +323,8 @@ function getOverpassData() {
 
       let nodesinsideway = XMLways[i].getElementsByTagName("nd")
       for (let j = 0; j < nodesinsideway.length - 1; j++) {
-        fromnode = getNodebyId(nodesinsideway[j].getAttribute("ref"))
-        tonode = getNodebyId(nodesinsideway[j + 1].getAttribute("ref"))
+        let fromnode = getNodebyId(nodesinsideway[j].getAttribute("ref"))
+        let tonode = getNodebyId(nodesinsideway[j + 1].getAttribute("ref"))
         if ((fromnode != null) & (tonode != null)) {
           let newEdge = new Edge(fromnode, tonode, wayid, oneway)
           edges.push(newEdge)
@@ -323,7 +344,7 @@ function showNodes() {
       nodes[i].show()
     }
     if (mode == selectnodemode) {
-      disttoMouse = dist(nodes[i].x, nodes[i].y, mouseX, mouseY)
+      let disttoMouse = myp5.dist(nodes[i].x, nodes[i].y, myp5.mouseX, myp5.mouseY)
       if (disttoMouse < closestnodetomousedist) {
         closestnodetomousedist = disttoMouse
         closestnodetomouse = i
@@ -343,7 +364,7 @@ function showEdges() {
   for (let i = 0; i < edges.length; i++) {
     edges[i].show()
     if (mode == trimmode) {
-      let dist = edges[i].distanceToPoint(mouseX, mouseY)
+      let dist = edges[i].distanceToPoint(myp5.mouseX, myp5.mouseY)
       if (dist < closestedgetomousedist) {
         closestedgetomousedist = dist
         closestedgetomouse = i
@@ -463,7 +484,7 @@ function solveRES() {
   bestdistance = Infinity
   iterations = 0
   iterationsperframe = 1
-  starttime = millis()
+  starttime = myp5.millis()
 }
 
 function actionButtonClicked() {
@@ -527,38 +548,17 @@ function canvasClicked() {
   }
 }
 
-function positionMap(minlon_, minlat_, maxlon_, maxlat_) {
-  extent = [minlon_, minlat_, maxlon_, maxlat_]
-  //try to fit the map to these coordinates
-  openlayersmap
-    .getView()
-    .fit(
-      ol.proj.transformExtent(extent, "EPSG:4326", "EPSG:3857"),
-      openlayersmap.getSize()
-    )
-  //capture the exact coverage of the map after fitting
-  var extent = ol.proj.transformExtent(
-    openlayersmap.getView().calculateExtent(openlayersmap.getSize()),
-    "EPSG:3857",
-    "EPSG:4326"
-  )
-  mapminlat = extent[1]
-  mapminlon = extent[0]
-  mapmaxlat = extent[3]
-  mapmaxlon = extent[2]
-}
-
-function calcdistance(lat1, long1, lat2, long2) {
-  lat1 = radians(lat1)
-  long1 = radians(long1)
-  lat2 = radians(lat2)
-  long2 = radians(long2)
+export function calcdistance(lat1, long1, lat2, long2) {
+  lat1 = myp5.radians(lat1)
+  long1 = myp5.radians(long1)
+  lat2 = myp5.radians(lat2)
+  long2 = myp5.radians(long2)
   return (
     2 *
-    asin(
-      sqrt(
-        pow(sin((lat2 - lat1) / 2), 2) +
-          cos(lat1) * cos(lat2) * pow(sin((long2 - long1) / 2), 2)
+    myp5.asin(
+        myp5.sqrt(
+            myp5.pow(myp5.sin((lat2 - lat1) / 2), 2) +
+            myp5.cos(lat1) * myp5.cos(lat2) * myp5.pow(myp5.sin((long2 - long1) / 2), 2)
       )
     ) *
     6371.0
@@ -620,82 +620,82 @@ function trimSelectedEdge() {
 
 function drawProgressGraph() {
   if (efficiencyhistory.length > 0) {
-    noStroke()
-    fill(0, 0, 0, 0.3)
+    myp5.noStroke()
+    myp5.fill(0, 0, 0, 0.3)
     let graphHeight = 100
-    rect(0, height - graphHeight, windowWidth, graphHeight)
-    fill(0, 5, 225, 255)
-    textAlign(LEFT)
-    textSize(12)
-    text(
+    myp5.rect(0, myp5.height - graphHeight, myp5.windowWidth, graphHeight)
+    myp5.fill(0, 5, 225, 255)
+    myp5.textAlign(myp5.LEFT)
+    myp5.textSize(12)
+    myp5.text(
       "Routes tried: " +
         iterations.toLocaleString() +
         ", Length of all roads: " +
-        nf(totaledgedistance, 0, 1) +
+        myp5.nf(totaledgedistance, 0, 1) +
         "km, Best route: " +
-        nf(bestroute.distance, 0, 1) +
+        myp5.nf(bestroute.distance, 0, 1) +
         "km (" +
-        round(efficiencyhistory[efficiencyhistory.length - 1] * 100) +
+        myp5.round(efficiencyhistory[efficiencyhistory.length - 1] * 100) +
         "%)",
       15,
-      height - graphHeight + 18
+      myp5.height - graphHeight + 18
     )
-    textAlign(CENTER)
-    textSize(12)
+    myp5.textAlign(myp5.CENTER)
+    myp5.textSize(12)
     for (let i = 0; i < efficiencyhistory.length; i++) {
-      fill((i * 128) / efficiencyhistory.length, 255, 205, 1)
-      let startx = map(i, 0, efficiencyhistory.length, 0, windowWidth)
-      let starty = height - graphHeight * efficiencyhistory[i]
-      rect(
+      myp5.fill((i * 128) / efficiencyhistory.length, 255, 205, 1)
+      let startx = myp5.map(i, 0, efficiencyhistory.length, 0, myp5.windowWidth)
+      let starty = myp5.height - graphHeight * efficiencyhistory[i]
+      myp5.rect(
         startx,
         starty,
-        windowWidth / efficiencyhistory.length,
+        myp5.windowWidth / efficiencyhistory.length,
         graphHeight * efficiencyhistory[i]
       )
-      fill(0, 5, 0)
-      text(
-        round(distancehistory[i]) + "km",
-        startx + windowWidth / efficiencyhistory.length / 2,
-        height - 5
+      myp5.fill(0, 5, 0)
+      myp5.text(
+        myp5.round(distancehistory[i]) + "km",
+        startx + myp5.windowWidth / efficiencyhistory.length / 2,
+        myp5.height - 5
       )
     }
   }
 }
 
 function showReportOut() {
-  fill(250, 255, 0, 0.6)
-  noStroke()
-  rect(width / 2 - 150, height / 2 - 250, 300, 450)
-  fill(250, 255, 0, 0.15)
-  rect(width / 2 - 147, height / 2 - 247, 300, 450)
-  strokeWeight(1)
-  stroke(20, 255, 255, 0.8)
-  line(width / 2 - 150, height / 2 - 200, width / 2 + 150, height / 2 - 200)
-  noStroke()
-  fill(0, 0, 255, 1)
-  textSize(28)
-  textAlign(CENTER)
-  text("Route Summary", width / 2, height / 2 - 215)
-  fill(0, 0, 255, 0.75)
-  textSize(16)
-  text("Total roads covered", width / 2, height / 2 - 170 + 0 * 95)
-  text("Total length of all roads", width / 2, height / 2 - 170 + 1 * 95)
-  text("Length of final route", width / 2, height / 2 - 170 + 2 * 95)
-  text("Efficiency", width / 2, height / 2 - 170 + 3 * 95)
+  myp5.fill(250, 255, 0, 0.6)
+  myp5.noStroke()
+  myp5.rect(myp5.width / 2 - 150, myp5.height / 2 - 250, 300, 450)
+  myp5.fill(250, 255, 0, 0.15)
+  myp5.rect(myp5.width / 2 - 147, myp5.height / 2 - 247, 300, 450)
+  myp5.strokeWeight(1)
+  myp5.stroke(20, 255, 255, 0.8)
+  myp5.line(myp5.width / 2 - 150, myp5.height / 2 - 200, myp5.width / 2 + 150, myp5.height / 2 - 200)
+  myp5.noStroke()
+  myp5.fill(0, 0, 255, 1)
+  myp5.textSize(28)
+  myp5.textAlign(myp5.CENTER)
+  myp5.text("Route Summary", myp5.width / 2, myp5.height / 2 - 215)
+  myp5.fill(0, 0, 255, 0.75)
+  myp5.textSize(16)
+  myp5.text("Total roads covered", myp5.width / 2, myp5.height / 2 - 170 + 0 * 95)
+  myp5.text("Total length of all roads", myp5.width / 2, myp5.height / 2 - 170 + 1 * 95)
+  myp5.text("Length of final route", myp5.width / 2, myp5.height / 2 - 170 + 2 * 95)
+  myp5.text("Efficiency", myp5.width / 2, myp5.height / 2 - 170 + 3 * 95)
 
-  textSize(36)
-  fill(20, 255, 255, 1)
-  text(totaluniqueroads, width / 2, height / 2 - 120 + 0 * 95)
-  text(nf(totaledgedistance, 0, 1) + "km", width / 2, height / 2 - 120 + 1 * 95)
-  text(
-    nf(bestroute.distance, 0, 1) + "km",
-    width / 2,
-    height / 2 - 120 + 2 * 95
+  myp5.textSize(36)
+  myp5.fill(20, 255, 255, 1)
+  myp5.text(totaluniqueroads, myp5.width / 2, myp5.height / 2 - 120 + 0 * 95)
+  myp5.text(myp5.nf(totaledgedistance, 0, 1) + "km", myp5.width / 2, myp5.height / 2 - 120 + 1 * 95)
+  myp5.text(
+    myp5.nf(bestroute.distance, 0, 1) + "km",
+    myp5.width / 2,
+    myp5.height / 2 - 120 + 2 * 95
   )
-  text(
-    round((100 * totaledgedistance) / bestroute.distance) + "%",
-    width / 2,
-    height / 2 - 120 + 3 * 95
+  myp5.text(
+    myp5.round((100 * totaledgedistance) / bestroute.distance) + "%",
+    myp5.width / 2,
+    myp5.height / 2 - 120 + 3 * 95
   )
 }
 
@@ -703,20 +703,20 @@ function showStatus() {
   if (startnode != null) {
     let textx = 2
     let texty = mapHeight - 400
-    fill(0, 5, 225)
-    noStroke()
-    textSize(12)
-    textAlign(LEFT)
-    text("Total number nodes: " + nodes.length, textx, texty)
-    text("Total number road sections: " + edges.length, textx, texty + 20)
-    text(
-      "Length of roads: " + nf(totaledgedistance, 0, 3) + "km",
+    myp5.fill(0, 5, 225)
+    myp5.noStroke()
+    myp5.textSize(12)
+    myp5.textAlign(myp5.LEFT)
+    myp5.text("Total number nodes: " + nodes.length, textx, texty)
+    myp5.text("Total number road sections: " + edges.length, textx, texty + 20)
+    myp5.text(
+      "Length of roads: " + myp5.nf(totaledgedistance, 0, 3) + "km",
       textx,
       texty + 40
     )
     if (bestroute != null) {
       if (bestroute.waypoints.length > 0) {
-        text(
+        myp5.text(
           "Best route: " +
             nf(bestroute.distance, 0, 3) +
             "km, " +
@@ -726,21 +726,21 @@ function showStatus() {
           texty + 60
         )
       }
-      text("Routes tried: " + iterations, textx, texty + 80)
-      text("Frame rate: " + frameRate(), textx, texty + 100)
-      text("Solutions per frame: " + iterationsperframe, textx, texty + 120)
-      text(
-        "Iterations/second: " + (iterations / (millis() - starttime)) * 1000,
+      myp5.text("Routes tried: " + iterations, textx, texty + 80)
+      myp5.text("Frame rate: " + myp5.frameRate(), textx, texty + 100)
+      myp5.text("Solutions per frame: " + iterationsperframe, textx, texty + 120)
+      myp5.text(
+        "Iterations/second: " + (iterations / (myp5.millis() - starttime)) * 1000,
         textx,
         texty + 140
       )
-      text("best routes: " + efficiencyhistory.length, textx, texty + 160)
-      text(
+      myp5.text("best routes: " + efficiencyhistory.length, textx, texty + 160)
+      myp5.text(
         "efficiency gains: " +
-          nf(100 * totalefficiencygains, 0, 2) +
+          myp5.nf(100 * totalefficiencygains, 0, 2) +
           "% and " +
-          nf(
-            ((100 * totalefficiencygains) / (millis() - starttime)) * 1000,
+          myp5.nf(
+            ((100 * totalefficiencygains) / (myp5.millis() - starttime)) * 1000,
             0,
             2
           ) +
@@ -748,7 +748,9 @@ function showStatus() {
         textx,
         texty + 180
       ) //
-      text("isTouchScreenDevice: " + isTouchScreenDevice, textx, texty + 200)
+      myp5.text("isTouchScreenDevice: " + isTouchScreenDevice, textx, texty + 200)
     }
   }
 }
+
+init()

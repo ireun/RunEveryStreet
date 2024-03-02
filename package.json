@@ -1,0 +1,36 @@
+{
+  "name": "move-everyway",
+  "version": "2.0.0",
+  "description": "To travel all the ways in an area",
+  "main": "main.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --config webpack.config.js",
+    "start": "webpack serve --config webpack.config.js --mode=development"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clementh44/RunEveryStreet.git"
+  },
+  "author": "solipsia lejun clementh44",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/clementh44/RunEveryStreet/issues"
+  },
+  "homepage": "https://github.com/clementh44/RunEveryStreet#readme",
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "ol": "^9.0.0",
+    "p5": "^1.9.1"
+  },
+  "devDependencies": {
+    "css-loader": "^6.10.0",
+    "style-loader": "^3.3.4",
+    "webpack": "^5.90.3",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.2"
+  }
+}

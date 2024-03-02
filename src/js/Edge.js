@@ -1,4 +1,6 @@
-class Edge {
+import { myp5, calcdistance } from "./main"
+
+export default class Edge {
   wayid
   from
   to
@@ -40,28 +42,28 @@ class Edge {
   }
 
   show() {
-    strokeWeight(min(10, (this.travels + 1) * 2))
-    stroke(55, 255, 255, 0.8)
-    line(this.from.x, this.from.y, this.to.x, this.to.y)
-    fill(0)
-    noStroke()
+    myp5.strokeWeight(myp5.min(10, (this.travels + 1) * 2))
+    myp5.stroke(55, 255, 255, 0.8)
+    myp5.line(this.from.x, this.from.y, this.to.x, this.to.y)
+    myp5.fill(0)
+    myp5.noStroke()
     if (this.oneway) {
-      push()
-      var angle = atan2(this.from.y - this.to.y, this.from.x - this.to.x)
-      translate(this.to.x, this.to.y)
-      rotate(angle - HALF_PI)
+      myp5.push()
+      var angle = myp5.atan2(this.from.y - this.to.y, this.from.x - this.to.x)
+      myp5.translate(this.to.x, this.to.y)
+      myp5.rotate(angle - myp5.HALF_PI)
       var offset = 7
-      triangle(0, offset, offset * 0.5, offset, 0, -offset / 2)
-      pop()
+      myp5.triangle(0, offset, offset * 0.5, offset, 0, -offset / 2)
+      myp5.pop()
     }
   }
 
   highlight() {
-    strokeWeight(4)
-    stroke(20, 255, 255, 1)
-    line(this.from.x, this.from.y, this.to.x, this.to.y)
-    fill(0)
-    noStroke()
+    myp5.strokeWeight(4)
+    myp5.stroke(20, 255, 255, 1)
+    myp5.line(this.from.x, this.from.y, this.to.x, this.to.y)
+    myp5.fill(0)
+    myp5.noStroke()
   }
 
   OtherNodeofEdge(node) {
@@ -94,7 +96,7 @@ class Edge {
    * @returns 
    */
   distanceToPoint(x, y) {
-    return dist(
+    return myp5.dist(
       x,
       y,
       (this.to.x + this.from.x) / 2,

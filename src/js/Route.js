@@ -1,4 +1,7 @@
-class Route {
+import { myp5, bestroute, showSteps } from "./main"
+import { Vector } from "p5"
+
+export default class Route {
   waypoints
   minlat
   maxlat
@@ -42,10 +45,10 @@ class Route {
   addWaypoint(node, dist, doublingsup) {
     this.waypoints.push(node)
     this.distance += dist
-    this.minlat = min(this.minlat, node.lat)
-    this.maxlat = max(this.maxlat, node.lat)
-    this.minlon = min(this.minlon, node.lon)
-    this.maxlon = max(this.maxlon, node.lon)
+    this.minlat = myp5.min(this.minlat, node.lat)
+    this.maxlat = myp5.max(this.maxlat, node.lat)
+    this.minlon = myp5.min(this.minlon, node.lon)
+    this.maxlon = myp5.max(this.maxlon, node.lon)
     this.doublingsup += doublingsup
   }
 
@@ -55,34 +58,34 @@ class Route {
   }
 
   show() {
-    stroke(255, 255, 255, 55)
-    strokeWeight(5)
+    myp5.stroke(255, 255, 255, 55)
+    myp5.strokeWeight(5)
     for (let i = 0; i < this.waypoints.length - 1; i++) {
-      let from = createVector(this.waypoints[i].x, this.waypoints[i].y)
-      let to = createVector(this.waypoints[i + 1].x, this.waypoints[i + 1].y)
-      let vline = p5.Vector.sub(to, from)
-      let hue = map(i, 0, this.waypoints.length - 1, 0, 155)
-      stroke(hue, 255, 255, 0.5)
-      line(from.x, from.y, to.x, to.y)
+      let from = myp5.createVector(this.waypoints[i].x, this.waypoints[i].y)
+      let to = myp5.createVector(this.waypoints[i + 1].x, this.waypoints[i + 1].y)
+      let vline = Vector.sub(to, from)
+      let hue = myp5.map(i, 0, this.waypoints.length - 1, 0, 155)
+      myp5.stroke(hue, 255, 255, 0.5)
+      myp5.line(from.x, from.y, to.x, to.y)
       if (showSteps) {
-        fill(hue, 255, 55, 0.8)
-        noStroke()
-        textSize(8)
+        myp5.fill(hue, 255, 55, 0.8)
+        myp5.noStroke()
+        myp5.textSize(8)
         let textangle = vline.heading() + HALF_PI
-        text(
+        myp5.text(
           i,
-          10 * cos(textangle) + (from.x + to.x) / 2 - 5,
-          10 * sin(textangle) + (from.y + to.y) / 2
+          10 * myp5.cos(textangle) + (from.x + to.x) / 2 - 5,
+          10 * myp5.sin(textangle) + (from.y + to.y) / 2
         )
       }
     }
-    noStroke()
+    myp5.noStroke()
     if (this.waypoints.length > 0) {
-      fill(0, 255, 255, 0.8)
-      ellipse(this.waypoints[0].x, this.waypoints[0].y, 20, 20) //show the first waypoint
+      myp5.fill(0, 255, 255, 0.8)
+      myp5.ellipse(this.waypoints[0].x, this.waypoints[0].y, 20, 20) //show the first waypoint
     }
-    fill(149, 255, 255, 0.8)
-    ellipse(
+    myp5.fill(149, 255, 255, 0.8)
+    myp5.ellipse(
       this.waypoints[bestroute.waypoints.length - 1].x,
       this.waypoints[bestroute.waypoints.length - 1].y,
       20,
@@ -132,7 +135,7 @@ class Route {
 
     var serializer = new XMLSerializer()
     let XMLString = serializer.serializeToString(xmlDoc)
-    let XMLwriter = createWriter("route.gpx")
+    let XMLwriter = myp5.createWriter("route.gpx")
     XMLString = XMLString.replace("xm1ns", "xmlns") // for some weird reason the XML DOM won't add an attribute called exactly 'xmlns', so I'm fudging it.
     XMLwriter.write(XMLString)
     XMLwriter.close()

@@ -7,7 +7,9 @@ This repo is a tweaked fork from [Solipsia's RunEveryStreet](https://github.com/
 
 The rationale behind it is to use for street imagery where one use a road vehicle (car, bicycle, moped,…) to take pictures from streets in an efficient manner. As such, sidewalks would add unnecessary overlaps.
 
-Just open the [index.html](index.html) with a browser
+To run :
+npm install
+npm run start
 
 <p align="center">
   <img width="460" src="./docs/Square.png">
