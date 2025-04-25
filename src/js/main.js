@@ -260,7 +260,7 @@ function getOverpassData() {
   let overpassquery =
     '(way(poly:"{{bbox}}"){{filter}};node(w)(poly:"{{bbox}}"););out;'
   let filter =
-    "['highway']['highway' !~ 'trunk']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'service']['highway' !~ 'elevator']['footway' !~ 'crossing']['footway' !~ 'sidewalk']['foot' !~ 'no']['access' !~ 'private']['access' !~ 'no']"
+    "['highway']['highway' !~ 'trunk']['highway' !~ 'motorway']['highway' !~ 'motorway_link']['highway' !~ 'raceway']['highway' !~ 'proposed']['highway' !~ 'construction']['highway' !~ 'service']['highway' !~ 'elevator']['footway' !~ 'crossing']['footway' !~ 'sidewalk']['foot' !~ 'no']['access' !~ 'private']['access' !~ 'no']['highway' !~ 'footway']['highway' !~ 'path']['highway' !~ 'steps']['highway' !~ 'platform']['highway' !~ 'pedestrian']['highway' !~ 'cycleway']"
 
   overpassquery = overpassquery.replace("{{bbox}}", LonLat)
   overpassquery = overpassquery.replace("{{bbox}}", LonLat)
